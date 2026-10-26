@@ -1,0 +1,18 @@
+services:
+  bot:
+    build: .
+    image: fileflip-bot
+    container_name: fileflip-bot
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      # baza va LibreOffice profillari — konteyner qayta yaratilganda ham saqlanadi
+      - ./data:/app/data
+      - ./logs:/app/logs
+    # konvertatsiyalar ko'p xotira olishi mumkin — server qotib qolmasligi uchun chegara
+    mem_limit: 2g
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

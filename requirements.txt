@@ -1,0 +1,7 @@
+# Versiyalar sinalgan holatda mahkamlangan — yangilashdan oldin botni lokal tekshiring
+aiogram==3.31.0
+aiosqlite==0.22.1
+python-dotenv==1.2.4
+pymupdf==2.0
+pdf2docx==0.5.13
+pillow==13.0.0
