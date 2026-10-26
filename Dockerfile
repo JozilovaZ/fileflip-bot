@@ -26,10 +26,9 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
-# root huquqisiz ishlaydi; data/ logs/ temp/ shu foydalanuvchiga tegishli
+# bot root huquqisiz ishlaydi: entrypoint papkalar huquqini tuzatib, `bot` foydalanuvchisiga o'tadi
 RUN useradd --create-home --uid 1000 bot \
-    && mkdir -p data logs temp \
-    && chown -R bot:bot /app
-USER bot
+    && chmod +x /app/entrypoint.sh
 
+ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["python", "main.py"]

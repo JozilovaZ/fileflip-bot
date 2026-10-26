@@ -55,9 +55,6 @@ cd ~/fileflip
 cp .env.example .env
 nano .env                                  # BOT_TOKEN va ADMIN_IDS ni yozing
 
-mkdir -p data logs
-sudo chown -R 1000:1000 data logs          # konteyner ichidagi foydalanuvchi shu papkalarga yoza olishi uchun
-
 docker compose up -d --build
 ```
 

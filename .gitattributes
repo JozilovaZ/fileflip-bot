@@ -1,0 +1,2 @@
+# shell skriptlar Linux konteynerida ishlaydi — Windows'da ham LF bilan qolsin
+*.sh text eol=lf
