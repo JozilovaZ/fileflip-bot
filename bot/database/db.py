@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS users (
     full_name   TEXT,
     username    TEXT,
     lang        TEXT,
-    is_blocked  INTEGER NOT NULL DEFAULT 0,
+    is_blocked  INTEGER NOT NULL DEFAULT 0,  -- foydalanuvchi botni bloklagan
+    is_banned   INTEGER NOT NULL DEFAULT 0,  -- admin foydalanuvchini bloklagan
     created_at  TEXT NOT NULL,
     last_active TEXT NOT NULL
 );
@@ -58,11 +59,16 @@ async def init_db() -> None:
     async with _connect() as db:
         await db.execute("PRAGMA journal_mode=WAL")
         await db.executescript(SCHEMA)
+        # eski bazalarda keyin qo'shilgan ustunlar yo'q bo'ladi
+        async with db.execute("PRAGMA table_info(users)") as cur:
+            columns = {row[1] for row in await cur.fetchall()}
+        if "is_banned" not in columns:
+            await db.execute("ALTER TABLE users ADD COLUMN is_banned INTEGER NOT NULL DEFAULT 0")
         await db.commit()
 
 
-async def upsert_user(user_id: int, full_name: str, username: str | None) -> str | None:
-    """Foydalanuvchini qo'shadi yoki yangilaydi va uning tilini qaytaradi."""
+async def upsert_user(user_id: int, full_name: str, username: str | None) -> tuple[str | None, bool]:
+    """Foydalanuvchini qo'shadi yoki yangilaydi va uning tilini hamda bloklanganligini qaytaradi."""
     now = _now()
     async with _connect() as db:
         await db.execute(
@@ -78,9 +84,9 @@ async def upsert_user(user_id: int, full_name: str, username: str | None) -> str
             (user_id, full_name, username, now, now),
         )
         await db.commit()
-        async with db.execute("SELECT lang FROM users WHERE user_id = ?", (user_id,)) as cur:
+        async with db.execute("SELECT lang, is_banned FROM users WHERE user_id = ?", (user_id,)) as cur:
             row = await cur.fetchone()
-    return row[0] if row else None
+    return (row[0], bool(row[1])) if row else (None, False)
 
 
 async def set_lang(user_id: int, lang: str) -> None:
@@ -154,8 +160,59 @@ async def mark_blocked(user_id: int) -> None:
 
 async def get_active_user_ids() -> list[int]:
     async with _connect() as db:
-        async with db.execute("SELECT user_id FROM users WHERE is_blocked = 0") as cur:
+        async with db.execute("SELECT user_id FROM users WHERE is_blocked = 0 AND is_banned = 0") as cur:
             return [row[0] for row in await cur.fetchall()]
+
+
+# --- Admin: foydalanuvchilarni boshqarish ---
+
+USER_COLUMNS = "u.user_id, u.full_name, u.username, u.lang, u.is_blocked, u.is_banned, u.created_at, u.last_active"
+SEARCH_LIMIT = 10
+
+
+async def set_banned(user_id: int, banned: bool) -> bool:
+    """Foydalanuvchini bloklaydi yoki blokdan chiqaradi. Bunday foydalanuvchi bo'lmasa — False."""
+    async with _connect() as db:
+        cur = await db.execute("UPDATE users SET is_banned = ? WHERE user_id = ?", (int(banned), user_id))
+        await db.commit()
+        return cur.rowcount > 0
+
+
+async def find_users(query: str) -> list[tuple]:
+    """ID, @username yoki ism bo'yicha qidiradi. Qaytaradi: USER_COLUMNS tartibidagi qatorlar."""
+    query = query.strip()
+    async with _connect() as db:
+        if query.lstrip("-").isdigit():
+            sql, params = "u.user_id = ?", (int(query),)
+        elif query.startswith("@"):
+            sql, params = "u.username = ? COLLATE NOCASE", (query[1:],)
+        else:
+            sql, params = "u.full_name LIKE ? OR u.username LIKE ?", (f"%{query}%",) * 2
+        async with db.execute(
+            f"SELECT {USER_COLUMNS} FROM users u WHERE {sql} ORDER BY u.last_active DESC LIMIT ?",
+            (*params, SEARCH_LIMIT),
+        ) as cur:
+            return list(await cur.fetchall())
+
+
+async def get_user_services(user_id: int) -> list[tuple[str, int, int]]:
+    """Foydalanuvchi ishlatgan xizmatlar: (xizmat, jami, muvaffaqiyatsiz) — ko'pi birinchi."""
+    async with _connect() as db:
+        async with db.execute(
+            "SELECT service, COUNT(*), SUM(success = 0) FROM stats WHERE user_id = ? GROUP BY service ORDER BY 2 DESC",
+            (user_id,),
+        ) as cur:
+            return list(await cur.fetchall())
+
+
+async def export_users() -> list[tuple]:
+    """Barcha foydalanuvchilar: USER_COLUMNS + bajarilgan amallar soni."""
+    async with _connect() as db:
+        async with db.execute(
+            f"SELECT {USER_COLUMNS}, COUNT(s.id) FROM users u LEFT JOIN stats s ON s.user_id = u.user_id "
+            "GROUP BY u.user_id ORDER BY u.created_at"
+        ) as cur:
+            return list(await cur.fetchall())
 
 
 async def get_setting(key: str) -> str | None:
@@ -193,6 +250,7 @@ async def get_stats() -> dict:
         return {
             "users_total": await scalar("SELECT COUNT(*) FROM users"),
             "users_blocked": await scalar("SELECT COUNT(*) FROM users WHERE is_blocked = 1"),
+            "users_banned": await scalar("SELECT COUNT(*) FROM users WHERE is_banned = 1"),
             "new_day": await scalar("SELECT COUNT(*) FROM users WHERE created_at >= ?", day),
             "new_week": await scalar("SELECT COUNT(*) FROM users WHERE created_at >= ?", week),
             "new_month": await scalar("SELECT COUNT(*) FROM users WHERE created_at >= ?", month),

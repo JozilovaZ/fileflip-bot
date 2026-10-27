@@ -1,22 +1,28 @@
-"""Admin panel: statistika, hammaga xabar yuborish, majburiy obuna.
+"""Admin panel: statistika, hammaga xabar yuborish, majburiy obuna, foydalanuvchilarni boshqarish.
 
 Panel faqat o'zbek tilida — u faqat bot egalari uchun.
 """
 import asyncio
+import io
 import logging
 import re
+from datetime import datetime
 from html import escape
 
 from aiogram import Bot, F, Router
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError, TelegramRetryAfter
-from aiogram.filters import Command
+from aiogram.filters import Command, CommandObject
 from aiogram.filters.callback_data import CallbackData
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message
+from aiogram.types import BufferedInputFile, CallbackQuery, InlineKeyboardMarkup, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from openpyxl import Workbook
+from openpyxl.styles import Font
 
+from bot.config import config
 from bot.database import db, settings
 from bot.filters import IsAdmin
+from bot.handlers.history import LOCAL_TZ
 from bot.locales import LANGUAGES
 from bot.states import AdminStates
 
@@ -40,6 +46,8 @@ SERVICE_NAMES = {
     "pdf_split": "PDF ajratish",
     "images_to_pdf": "Rasmlar → PDF",
     "image_compress": "Rasm siqish",
+    "image_resize": "Rasm o'lchami",
+    "doc_template": "Hujjat shablonlari",
     "zip": "ZIP qilish",
     "unzip": "ZIP ochish",
 }
@@ -61,6 +69,8 @@ def _menu_keyboard() -> InlineKeyboardMarkup:
     _btn(kb, "📊 Statistika", "stats")
     _btn(kb, "📣 Xabar yuborish", "broadcast")
     _btn(kb, "📢 Majburiy obuna", "sub")
+    _btn(kb, "🔍 Foydalanuvchilar", "users")
+    _btn(kb, "📥 Excel'ga eksport", "export")
     kb.adjust(1)
     return kb.as_markup()
 
@@ -103,6 +113,7 @@ def _stats_text(s: dict) -> str:
         "👥 <b>Foydalanuvchilar</b>\n"
         f"   Jami: <b>{s['users_total']}</b>\n"
         f"   Botni bloklagan: {s['users_blocked']}\n"
+        f"   Admin bloklagan: {s['users_banned']}\n"
         f"   Yangi: 24 soat — {s['new_day']}, 7 kun — {s['new_week']}, 30 kun — {s['new_month']}\n"
         f"   Faol: 24 soat — {s['active_day']}, 7 kun — {s['active_week']}\n\n"
         f"🌐 <b>Tillar</b>\n{langs}\n\n"
@@ -335,3 +346,180 @@ async def channel_add(message: Message, state: FSMContext, bot: Bot) -> None:
     await state.clear()
     await message.reply(f"✅ <b>{escape(chat.title or '')}</b> qo'shildi.")
     await _show_sub(message, edit=False)
+
+
+# ---------- Foydalanuvchilar: qidirish va bloklash ----------
+
+def _date(iso: str | None) -> str:
+    return datetime.fromisoformat(iso).astimezone(LOCAL_TZ).strftime("%d.%m.%Y %H:%M") if iso else "—"
+
+
+def _status(is_blocked: int, is_banned: int) -> str:
+    if is_banned:
+        return "🚫 Admin bloklagan"
+    if is_blocked:
+        return "⛔️ Botni bloklagan"
+    return "✅ Faol"
+
+
+def _user_title(row: tuple) -> str:
+    user_id, full_name, username = row[:3]
+    return f"{full_name or '—'}" + (f" (@{username})" if username else "") + f" · {user_id}"
+
+
+async def _user_card(row: tuple) -> tuple[str, InlineKeyboardMarkup]:
+    user_id, full_name, username, lang, is_blocked, is_banned, created_at, last_active = row
+    services = await db.get_user_services(user_id)
+    total = sum(n for _, n, _ in services)
+    failed = sum(f or 0 for _, _, f in services)
+    top = "\n".join(
+        f"   {SERVICE_NAMES.get(name, name)}: {n}" for name, n, _ in services[:5]
+    ) or "   —"
+    text = (
+        "👤 <b>Foydalanuvchi</b>\n\n"
+        f"🆔 ID: <code>{user_id}</code>\n"
+        f"📛 Ism: {escape(full_name or '—')}\n"
+        f"🔗 Username: {'@' + escape(username) if username else '—'}\n"
+        f"🌐 Til: {LANGUAGES.get(lang, '❔ tanlanmagan')}\n"
+        f"📅 Ro'yxatdan o'tgan: {_date(created_at)}\n"
+        f"🕐 Oxirgi faollik: {_date(last_active)}\n"
+        f"📌 Holat: {_status(is_blocked, is_banned)}\n\n"
+        f"⚙️ <b>Amallar:</b> {total} (xato: {failed})\n{top}"
+    )
+
+    kb = InlineKeyboardBuilder()
+    if user_id in config.admin_ids:
+        pass  # adminni bloklab bo'lmaydi
+    elif is_banned:
+        _btn(kb, "✅ Blokdan chiqarish", "unban", str(user_id))
+    else:
+        _btn(kb, "🚫 Bloklash", "ban", str(user_id))
+    _btn(kb, "🔍 Boshqa qidirish", "users")
+    _btn(kb, "⬅️ Orqaga", "menu")
+    kb.adjust(1)
+    return text, kb.as_markup()
+
+
+async def _show_found(message: Message, query: str, state: FSMContext) -> None:
+    """Qidiruv natijasini yangi xabar qilib yuboradi: bitta bo'lsa — kartochka, ko'p bo'lsa — ro'yxat."""
+    rows = await db.find_users(query)
+    if not rows:
+        await message.reply("❌ Hech kim topilmadi. Boshqa ID, @username yoki ism yuboring.", reply_markup=_back_keyboard())
+        return
+    await state.clear()
+    if len(rows) == 1:
+        text, kb = await _user_card(rows[0])
+        await message.answer(text, reply_markup=kb)
+        return
+
+    kb = InlineKeyboardBuilder()
+    for row in rows:
+        _btn(kb, _user_title(row)[:60], "user", str(row[0]))
+    _btn(kb, "⬅️ Orqaga", "menu")
+    kb.adjust(1)
+    more = f" (birinchi {db.SEARCH_LIMIT} tasi)" if len(rows) == db.SEARCH_LIMIT else ""
+    await message.answer(f"🔍 Topildi: {len(rows)} ta{more}. Keraklisini tanlang 👇", reply_markup=kb.as_markup())
+
+
+@router.callback_query(AdminCB.filter(F.action == "users"))
+async def on_users(callback: CallbackQuery, state: FSMContext) -> None:
+    await callback.answer()
+    await state.set_state(AdminStates.user_search)
+    await callback.message.edit_text(
+        "🔍 <b>Foydalanuvchi qidirish</b>\n\n"
+        "Foydalanuvchining ID raqami, @username yoki ismini yuboring.\n\n"
+        "💡 Tezkor buyruqlar: <code>/user 123456</code>, <code>/ban 123456</code>, <code>/unban 123456</code>",
+        reply_markup=_back_keyboard(),
+    )
+
+
+@router.message(AdminStates.user_search, F.text)
+async def user_search(message: Message, state: FSMContext) -> None:
+    await _show_found(message, message.text, state)
+
+
+@router.message(Command("user"))
+async def cmd_user(message: Message, command: CommandObject, state: FSMContext) -> None:
+    if not command.args:
+        await message.reply("Foydalanish: <code>/user 123456</code> yoki <code>/user @username</code>")
+        return
+    await _show_found(message, command.args, state)
+
+
+@router.callback_query(AdminCB.filter(F.action == "user"))
+async def on_user(callback: CallbackQuery, callback_data: AdminCB) -> None:
+    rows = await db.find_users(callback_data.arg)
+    if not rows:
+        await callback.answer("Foydalanuvchi topilmadi", show_alert=True)
+        return
+    await callback.answer()
+    text, kb = await _user_card(rows[0])
+    await callback.message.edit_text(text, reply_markup=kb)
+
+
+async def _set_banned(user_id: int, banned: bool) -> str:
+    """Bloklaydi yoki blokdan chiqaradi va natija matnini qaytaradi."""
+    if user_id in config.admin_ids:
+        return "⚠️ Adminni bloklab bo'lmaydi."
+    if not await db.set_banned(user_id, banned):
+        return "❌ Bunday foydalanuvchi bazada yo'q."
+    logger.info("Admin: foydalanuvchi %s %s", user_id, "bloklandi" if banned else "blokdan chiqarildi")
+    return "🚫 Bloklandi" if banned else "✅ Blokdan chiqarildi"
+
+
+@router.callback_query(AdminCB.filter(F.action.in_({"ban", "unban"})))
+async def on_ban(callback: CallbackQuery, callback_data: AdminCB) -> None:
+    user_id = int(callback_data.arg)
+    await callback.answer(await _set_banned(user_id, callback_data.action == "ban"))
+    rows = await db.find_users(str(user_id))
+    if rows:
+        text, kb = await _user_card(rows[0])
+        await callback.message.edit_text(text, reply_markup=kb)
+
+
+@router.message(Command("ban", "unban"))
+async def cmd_ban(message: Message, command: CommandObject) -> None:
+    arg = (command.args or "").strip()
+    if not arg.lstrip("-").isdigit():
+        await message.reply(f"Foydalanish: <code>/{command.command} 123456</code> (foydalanuvchi ID raqami)")
+        return
+    await message.reply(await _set_banned(int(arg), command.command == "ban"))
+
+
+# ---------- Excel'ga eksport ----------
+
+EXPORT_HEADERS = ("ID", "Ism", "Username", "Til", "Holat", "Ro'yxatdan o'tgan", "Oxirgi faollik", "Amallar")
+EXPORT_WIDTHS = (14, 28, 20, 14, 20, 18, 18, 10)
+
+
+def _build_export(rows: list[tuple]) -> bytes:
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Foydalanuvchilar"
+    ws.append(EXPORT_HEADERS)
+    for cell in ws[1]:
+        cell.font = Font(bold=True)
+    for user_id, full_name, username, lang, is_blocked, is_banned, created_at, last_active, ops in rows:
+        ws.append((
+            user_id, full_name or "", f"@{username}" if username else "", LANGUAGES.get(lang, ""),
+            _status(is_blocked, is_banned).split(" ", 1)[1], _date(created_at), _date(last_active), ops,
+        ))
+    for i, width in enumerate(EXPORT_WIDTHS):
+        ws.column_dimensions[chr(ord("A") + i)].width = width
+    ws.freeze_panes = "A2"
+    ws.auto_filter.ref = ws.dimensions
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
+
+
+@router.callback_query(AdminCB.filter(F.action == "export"))
+async def on_export(callback: CallbackQuery) -> None:
+    await callback.answer("⏳ Tayyorlanmoqda...")
+    rows = await db.export_users()
+    data = await asyncio.to_thread(_build_export, rows)
+    name = f"fileflip_users_{datetime.now(LOCAL_TZ):%Y-%m-%d}.xlsx"
+    await callback.message.answer_document(
+        BufferedInputFile(data, filename=name),
+        caption=f"📥 Foydalanuvchilar ro'yxati: <b>{len(rows)}</b> ta",
+    )

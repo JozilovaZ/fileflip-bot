@@ -18,7 +18,13 @@ class ResizeStates(StatesGroup):
     waiting_size = State()
 
 
+class TemplateStates(StatesGroup):
+    filling = State()
+    format = State()
+
+
 class AdminStates(StatesGroup):
     broadcast_message = State()
     broadcast_confirm = State()
     channel_add = State()
+    user_search = State()

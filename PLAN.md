@@ -54,3 +54,5 @@ Fayl hajmi chegarasi: 20 MB (Telegram Bot API cheklovi).
 
 ## 9-bosqich. Qo'shimcha xizmatlar
 - [x] Rasm o'lchamini o'zgartirish (3×4 hujjat rasmi, 50%, 1920/1280/800 px yoki o'zi yozadi: `800x600`, `1280`, `50%`)
+- [x] Hujjat shablonlari: ariza (umumiy, ishdan bo'shash, ta'til) va tushuntirish xati → Word/PDF
+- [x] Admin panel: foydalanuvchi qidirish (ID / @username / ism), bloklash (/ban, /unban), Excel'ga eksport

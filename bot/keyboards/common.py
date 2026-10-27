@@ -15,7 +15,8 @@ def lang_keyboard() -> InlineKeyboardMarkup:
 def main_menu(lang: str | None) -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text=t(lang, "btn_services")), KeyboardButton(text=t(lang, "btn_history"))],
+            [KeyboardButton(text=t(lang, "btn_services")), KeyboardButton(text=t(lang, "btn_templates"))],
+            [KeyboardButton(text=t(lang, "btn_history"))],
             [KeyboardButton(text=t(lang, "btn_lang")), KeyboardButton(text=t(lang, "btn_help"))],
         ],
         resize_keyboard=True,

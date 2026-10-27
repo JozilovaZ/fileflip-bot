@@ -21,7 +21,7 @@ from bot.utils import tempfiles
 def _commands(lang: str | None) -> list[BotCommand]:
     return [
         BotCommand(command=name, description=t(lang, f"cmd_{name}"))
-        for name in ("start", "history", "lang", "help")
+        for name in ("start", "templates", "history", "lang", "help")
     ]
 
 
@@ -33,8 +33,13 @@ async def set_commands(bot: Bot) -> None:
         await bot.set_my_commands(_commands(lang), language_code=lang)
     await bot.set_my_commands(_commands(None))
 
-    # adminlar menyusida qo'shimcha /admin buyrug'i
-    admin_commands = _commands(None) + [BotCommand(command="admin", description="Admin panel")]
+    # adminlar menyusida qo'shimcha admin buyruqlari
+    admin_commands = _commands(None) + [
+        BotCommand(command="admin", description="Admin panel"),
+        BotCommand(command="user", description="Foydalanuvchini topish: /user ID yoki @username"),
+        BotCommand(command="ban", description="Bloklash: /ban ID"),
+        BotCommand(command="unban", description="Blokdan chiqarish: /unban ID"),
+    ]
     for admin_id in config.admin_ids:
         try:
             await bot.set_my_commands(admin_commands, scope=BotCommandScopeChat(chat_id=admin_id))

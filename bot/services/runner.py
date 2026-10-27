@@ -91,11 +91,13 @@ async def execute(
     lang: str | None,
     files: list[tuple[str, str]],
     work: Work,
+    label: str | None = None,
 ) -> None:
     """Ishni navbatga qo'yadi, keyin fayllarni (file_id, nom) yuklab oladi,
     `work` ni bajaradi va natijani yuboradi.
 
     `status` — bot xabari; jarayon holati shu xabarda ko'rsatiladi.
+    `label` — kirish fayli bo'lmagan ishlar (masalan, shablonlar) uchun holatdagi nom.
     """
     if _user_pending.get(user_id, 0) >= MAX_USER_PENDING:
         await _edit(status, t(lang, "too_many_jobs", max=MAX_USER_PENDING))
@@ -107,7 +109,7 @@ async def execute(
         if user_lock.locked() or _jobs.locked():
             await _edit(status, t(lang, "queued"))
         async with user_lock, _jobs:
-            await _process(bot, status, user_id, service, lang, files, work)
+            await _process(bot, status, user_id, service, lang, files, work, label)
     finally:
         _user_pending[user_id] -= 1
         if not _user_pending[user_id]:
@@ -123,8 +125,10 @@ async def _process(
     lang: str | None,
     files: list[tuple[str, str]],
     work: Work,
+    label: str | None,
 ) -> None:
-    label = escape(files[0][1]) if len(files) == 1 else t(lang, "n_files", n=len(files))
+    if label is None:
+        label = escape(files[0][1]) if len(files) == 1 else t(lang, "n_files", n=len(files))
     await _edit(status, t(lang, "processing", name=label))
     workdir = tempfiles.new_workdir()
     success = False
