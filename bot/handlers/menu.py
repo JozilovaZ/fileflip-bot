@@ -8,7 +8,7 @@ from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from bot.config import config
-from bot.handlers import collect, pdf_tools
+from bot.handlers import collect, image_tools, pdf_tools
 from bot.locales import all_variants, t
 from bot.services import SERVICE_KINDS
 from bot.services.runner import run_service
@@ -26,8 +26,15 @@ MENU_ORDER = [
     "pdf_split", "word_to_pdf",
     "ppt_to_pdf", "excel_to_pdf",
     "images_to_pdf", "image_compress",
-    "zip", "unzip",
+    "image_resize", "zip",
+    "unzip",
 ]
+
+# Fayl kelgach qo'shimcha savol beradigan xizmatlar
+INTERACTIVE = {
+    "pdf_split": pdf_tools.begin_split,
+    "image_resize": image_tools.begin_resize,
+}
 
 
 class PickCB(CallbackData, prefix="pick"):
@@ -91,8 +98,8 @@ async def on_service_file(message: Message, state: FSMContext, bot: Bot, lang: s
         return
 
     status = await message.reply(t(lang, "processing", name=escape(ref.file_name)))
-    if service == "pdf_split":
-        await pdf_tools.begin_split(status, state, ref, bot, lang)
+    if service in INTERACTIVE:
+        await INTERACTIVE[service](status, state, ref, bot, lang)
         return
     # holat saqlanib qoladi — foydalanuvchi shu xizmat uchun yana fayl yuborishi mumkin
     await run_service(bot, status, StoredFile(message.from_user.id, [ref]), service, lang)

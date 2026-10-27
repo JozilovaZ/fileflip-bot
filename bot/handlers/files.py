@@ -6,7 +6,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from bot.config import config
-from bot.handlers import collect, pdf_tools
+from bot.handlers import collect, image_tools, pdf_tools
 from bot.keyboards.files import CANCEL, ServiceCB, actions_keyboard
 from bot.locales import t
 from bot.services import ACTIONS, MULTI_ACTIONS, SERVICES
@@ -24,6 +24,7 @@ ALBUM_WAIT_SECONDS = 1.0
 INTERACTIVE = {
     **collect.STARTERS,
     "pdf_split": pdf_tools.start_split,
+    "image_resize": image_tools.start_resize,
 }
 
 _albums: dict[str, list[tuple[int, FileRef, str]]] = {}

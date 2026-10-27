@@ -133,6 +133,25 @@ TEXTS = {
         "collect_limit": "⚠️ Ko'pi bilan {max} ta fayl qo'shish mumkin.",
         "collect_need_more": "Kamida {min} ta fayl kerak. Yana fayl yuboring.",
         "image_broken": "❌ Rasmni ochib bo'lmadi. Fayl buzilgan yoki bu format qo'llab-quvvatlanmaydi.",
+        "menu_image_resize": "📐 Rasm o'lchami",
+        "svc_image_resize": "📐 O'lcham",
+        "image_reading": "⏳ Rasm o'qilmoqda...",
+        "resize_ask": (
+            "📐 <b>Rasm o'lchamini o'zgartirish</b>\n"
+            "🖼 {name} — {width}×{height} px\n\n"
+            "Kerakli o'lchamni yozing, masalan:\n"
+            "<code>800x600</code> — aniq o'lcham (ortiqcha qismi kesiladi)\n"
+            "<code>1280</code> — eni, bo'yi proporsional\n"
+            "<code>50%</code> — foizda\n\n"
+            "Yoki tayyor o'lchamni tanlang 👇"
+        ),
+        "resize_bad": "⚠️ Noto'g'ri format. Masalan: <code>800x600</code>, <code>1280</code> yoki <code>50%</code>.\nHar bir tomon {max} px dan oshmasligi kerak.",
+        "resize_too_big": "⚠️ Natija rasmi juda katta chiqadi. Har bir tomon {max} px dan oshmasligi kerak.",
+        "btn_resize_doc": "🪪 3×4 hujjat rasmi",
+        "btn_resize_half": "➗ 50%",
+        "btn_resize_w1920": "🖥 1920 px (Full HD)",
+        "btn_resize_w1280": "💻 1280 px (HD)",
+        "btn_resize_w800": "📱 800 px",
         "collect_start_zip": (
             "📦 <b>ZIP arxiv</b>\n"
             "📎 Hozircha: {n} ta fayl\n\n"
@@ -297,6 +316,25 @@ TEXTS = {
         "collect_limit": "⚠️ Можно добавить не более {max} файлов.",
         "collect_need_more": "Нужно минимум {min} файла. Отправьте ещё файл.",
         "image_broken": "❌ Не удалось открыть изображение. Файл повреждён или формат не поддерживается.",
+        "menu_image_resize": "📐 Размер фото",
+        "svc_image_resize": "📐 Размер",
+        "image_reading": "⏳ Читаю изображение...",
+        "resize_ask": (
+            "📐 <b>Изменение размера</b>\n"
+            "🖼 {name} — {width}×{height} px\n\n"
+            "Напишите нужный размер, например:\n"
+            "<code>800x600</code> — точный размер (лишнее обрежется)\n"
+            "<code>1280</code> — ширина, высота пропорционально\n"
+            "<code>50%</code> — в процентах\n\n"
+            "Или выберите готовый размер 👇"
+        ),
+        "resize_bad": "⚠️ Неверный формат. Например: <code>800x600</code>, <code>1280</code> или <code>50%</code>.\nКаждая сторона — не больше {max} px.",
+        "resize_too_big": "⚠️ Результат получится слишком большим. Каждая сторона — не больше {max} px.",
+        "btn_resize_doc": "🪪 Фото 3×4 на документы",
+        "btn_resize_half": "➗ 50%",
+        "btn_resize_w1920": "🖥 1920 px (Full HD)",
+        "btn_resize_w1280": "💻 1280 px (HD)",
+        "btn_resize_w800": "📱 800 px",
         "collect_start_zip": (
             "📦 <b>ZIP архив</b>\n"
             "📎 Сейчас файлов: {n}\n\n"
@@ -461,6 +499,25 @@ TEXTS = {
         "collect_limit": "⚠️ You can add up to {max} files.",
         "collect_need_more": "At least {min} files are needed. Send another file.",
         "image_broken": "❌ Could not open the image. The file is damaged or the format isn't supported.",
+        "menu_image_resize": "📐 Resize image",
+        "svc_image_resize": "📐 Resize",
+        "image_reading": "⏳ Reading the image...",
+        "resize_ask": (
+            "📐 <b>Resize image</b>\n"
+            "🖼 {name} — {width}×{height} px\n\n"
+            "Type the size you need, for example:\n"
+            "<code>800x600</code> — exact size (extra is cropped)\n"
+            "<code>1280</code> — width, height kept proportional\n"
+            "<code>50%</code> — percentage\n\n"
+            "Or pick a ready-made size 👇"
+        ),
+        "resize_bad": "⚠️ Invalid format. Example: <code>800x600</code>, <code>1280</code> or <code>50%</code>.\nEach side must be at most {max} px.",
+        "resize_too_big": "⚠️ The result would be too large. Each side must be at most {max} px.",
+        "btn_resize_doc": "🪪 3×4 ID photo",
+        "btn_resize_half": "➗ 50%",
+        "btn_resize_w1920": "🖥 1920 px (Full HD)",
+        "btn_resize_w1280": "💻 1280 px (HD)",
+        "btn_resize_w800": "📱 800 px",
         "collect_start_zip": (
             "📦 <b>ZIP archive</b>\n"
             "📎 Files so far: {n}\n\n"

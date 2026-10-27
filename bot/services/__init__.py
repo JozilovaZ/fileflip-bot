@@ -19,7 +19,7 @@ ACTIONS: dict[str, list[str]] = {
     ft.WORD: ["word_to_pdf", "zip"],
     ft.PPT: ["ppt_to_pdf", "zip"],
     ft.EXCEL: ["excel_to_pdf", "zip"],
-    ft.IMAGE: ["images_to_pdf", "image_compress", "zip"],
+    ft.IMAGE: ["images_to_pdf", "image_compress", "image_resize", "zip"],
     ft.ZIP: ["unzip"],
     ft.OTHER: ["zip"],
 }
@@ -44,6 +44,7 @@ SERVICE_KINDS: dict[str, str] = {
     "excel_to_pdf": ft.EXCEL,
     "images_to_pdf": ft.IMAGE,
     "image_compress": ft.IMAGE,
+    "image_resize": ft.IMAGE,
     "unzip": ft.ZIP,
 }
 

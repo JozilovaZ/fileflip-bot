@@ -14,6 +14,10 @@ class SplitStates(StatesGroup):
     waiting_pages = State()
 
 
+class ResizeStates(StatesGroup):
+    waiting_size = State()
+
+
 class AdminStates(StatesGroup):
     broadcast_message = State()
     broadcast_confirm = State()

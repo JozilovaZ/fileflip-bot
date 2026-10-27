@@ -2,7 +2,7 @@
 
 [@File_UzFlip_bot](https://t.me/File_UzFlip_bot): PDF, Word, PowerPoint, Excel, rasm va ZIP fayllarni aylantiruvchi bot.
 
-**Xizmatlar:** PDF ↔ Word, PDF → rasmlar, PDF siqish, birlashtirish va ajratish, Office → PDF, rasmlar → PDF, rasm siqish, ZIP qilish va ochish.
+**Xizmatlar:** PDF ↔ Word, PDF → rasmlar, PDF siqish, birlashtirish va ajratish, Office → PDF, rasmlar → PDF, rasm siqish va o'lchamini o'zgartirish, ZIP qilish va ochish.
 Bot uch tilda ishlaydi (o'zbek, rus, ingliz). Admin panel, majburiy obuna va "Mening fayllarim" tarixi bor.
 
 **Texnologiyalar:** Python 3.11, aiogram 3, SQLite, LibreOffice, PyMuPDF, pdf2docx, Pillow.

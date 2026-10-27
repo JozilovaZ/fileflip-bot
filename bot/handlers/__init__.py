@@ -1,6 +1,6 @@
 from aiogram import Router
 
-from bot.handlers import admin, collect, errors, fallback, files, history, menu, pdf_tools, start
+from bot.handlers import admin, collect, errors, fallback, files, history, image_tools, menu, pdf_tools, start
 
 
 def setup_routers() -> Router:
@@ -14,6 +14,7 @@ def setup_routers() -> Router:
     # holatga bog'liq handlerlar oddiy fayl qabul qilishdan oldin turishi kerak
     router.include_router(collect.router)
     router.include_router(pdf_tools.router)
+    router.include_router(image_tools.router)
     router.include_router(files.router)
     # fallback har doim oxirida bo'lishi kerak
     router.include_router(fallback.router)

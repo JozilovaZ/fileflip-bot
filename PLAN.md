@@ -51,3 +51,6 @@ Fayl hajmi chegarasi: 20 MB (Telegram Bot API cheklovi).
 - [x] «📂 Mening fayllarim» — natijalar tarixi (qo'shimcha)
 - [x] Docker: `Dockerfile`, `docker-compose.yml` (polling, nginx'siz)
 - [ ] Serverga joylash va u yerda sinash
+
+## 9-bosqich. Qo'shimcha xizmatlar
+- [x] Rasm o'lchamini o'zgartirish (3×4 hujjat rasmi, 50%, 1920/1280/800 px yoki o'zi yozadi: `800x600`, `1280`, `50%`)
